@@ -24,6 +24,10 @@ import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 
+import org.eclipse.paho.client.mqttv3.MqttClient;
+import org.eclipse.paho.client.mqttv3.IMqttClient;
+import org.eclipse.paho.client.mqttv3.MqttConnectOptions;
+
 import java.io.UnsupportedEncodingException;
 import java.math.BigInteger;
 import java.nio.ByteBuffer;
@@ -48,8 +52,8 @@ public class SampleProducer {
 
     private static final Random RANDOM = new Random();
     private static final String TIMESTAMP = Long.toString(System.currentTimeMillis());
-    private static final int RECORDS_PER_SECOND = 100;
-    private static final int SECONDS_TO_RUN_DEFAULT = 5;
+    private static final int RECORDS_PER_SECOND = 1;
+    private static final int SECONDS_TO_RUN_DEFAULT = 60;
     private static final ScheduledExecutorService EXECUTOR = Executors.newScheduledThreadPool(1);
 
     private static final String[] TICKERS = { "AAPL", "AMZN", "MSFT", "INTC", "TBV" };
@@ -112,16 +116,32 @@ public class SampleProducer {
         final ExecutorService callbackThreadPool = Executors.newCachedThreadPool();
 
         // The lines within run() are the essence of the KPL API.
-        final Runnable putOneRecord = new Runnable() {
-            @Override
-            public void run() {
-                ByteBuffer data = generateData();
-                // TIMESTAMP is our partition key
-                ListenableFuture<UserRecordResult> f = producer.addUserRecord(streamName, TIMESTAMP, randomExplicitHashKey(), data);
-                Futures.addCallback(f, callback, callbackThreadPool);
+        String clientId = "abcd1234testclientid";
+        IMqttClient mq = new MqttClient("tcp://mqtt.hsl.fi:1883", clientId);
+        MqttConnectOptions options = new MqttConnectOptions();
+        options.setAutomaticReconnect(true);
+        options.setCleanSession(true);
+        options.setConnectionTimeout(30);
+        mq.connect(options);
+        
+        // start with one route (9)
+        mq.subscribe("/hfp/v2/journey/ongoing/vp/+/+/+/9/+/+/+/+/0/#",
+            (topic, msg) -> {
+                ByteBuffer payload = ByteBuffer.wrap(msg.getPayload());
+                Runnable cmd = new Runnable() {
+                    @Override
+                    public void run() {
+                        // TIMESTAMP is our partition key
+                        ListenableFuture<UserRecordResult> f = producer.addUserRecord(streamName, TIMESTAMP, randomExplicitHashKey(), payload);
+                        Futures.addCallback(f, callback, callbackThreadPool);
+                    }
+                };
+                LOG.info("Received message, pushing to stream...");
+                EXECUTOR.submit(cmd);
             }
-        };
-
+        );
+            
+        /*
         EXECUTOR.scheduleAtFixedRate(new Runnable() {
             @Override
             public void run() {
@@ -134,16 +154,17 @@ public class SampleProducer {
                         "Put %d of %d so far (%.2f %%), %d have completed (%.2f %%)",
                         put, total, putPercent, done, donePercent));
             }
-        }, 1, 1, TimeUnit.SECONDS);
-
+        }, 1, 1, TimeUnit.SECONDS);*/
+        /*
         LOG.info(String.format(
             "Starting puts... will run for %d seconds at %d records per second",
             secondsToRun,
             RECORDS_PER_SECOND
-        ));
-        executeAtTargetRate(EXECUTOR, putOneRecord, sequenceNumber, secondsToRun, RECORDS_PER_SECOND);
+        ));*/
+        
+        //executeAtTargetRate(EXECUTOR, putOneRecord, sequenceNumber, secondsToRun, RECORDS_PER_SECOND);
 
-        EXECUTOR.awaitTermination(secondsToRun + 1, TimeUnit.SECONDS);
+        EXECUTOR.awaitTermination(secondsToRun + 1L, TimeUnit.SECONDS);
 
         LOG.info("Waiting for remaining puts to finish...");
         producer.flushSync();
@@ -157,6 +178,7 @@ public class SampleProducer {
         return new BigInteger(128, RANDOM).toString(10);
     }
 
+    /*
     private static void executeAtTargetRate(
             final ScheduledExecutorService exec,
             final Runnable task,
@@ -187,25 +209,6 @@ public class SampleProducer {
             }
         }, 0, 1, TimeUnit.MILLISECONDS);
     }
+    */
 
-    public static ByteBuffer generateData() {
-        int index = RANDOM.nextInt(TICKERS.length);
-
-        String record = new JSONObject()
-            .put("EVENT_TIME", Instant.now().toString())
-            .put("TICKER", TICKERS[index])
-            .put("PRICE", RANDOM.nextDouble() * 100)
-            .toString();
-
-        LOG.debug(record);
-
-        byte[] sendData = null;
-        try {
-            sendData = record.getBytes("UTF-8");
-        } catch (UnsupportedEncodingException e) {
-            LOG.error("Error converting string to byte array " + e);
-        }
-
-        return ByteBuffer.wrap(sendData);
-    }
 }

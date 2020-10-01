@@ -129,13 +129,13 @@ chmod +x ./build-s3-dist.sh
 Create the CloudFormation bucket defined above, as well as a regional bucket in the region you wish to deploy. The CloudFormation templates are configured to pull the Lambda deployment packages from Amazon S3 bucket in the region the template is being launched in.
 
 ```
-aws s3 mb s3://$ARTIFACT_BUCKET --region us-east-1
-aws s3 mb s3://$ARTIFACT_BUCKET-us-east-1 --region us-east-1
+aws s3 mb s3://$ARTIFACT_BUCKET --region eu-central-1
+aws s3 mb s3://$ARTIFACT_BUCKET-eu-central-1 --region eu-central-1
 ```
 
 ```
 aws s3 sync ./global-s3-assets s3://$ARTIFACT_BUCKET/$SOLUTION_NAME/$VERSION --acl bucket-owner-full-control
-aws s3 sync ./regional-s3-assets s3://$ARTIFACT_BUCKET-us-east-1/$SOLUTION_NAME/$VERSION --acl bucket-owner-full-control
+aws s3 sync ./regional-s3-assets s3://$ARTIFACT_BUCKET-eu-central-1/$SOLUTION_NAME/$VERSION --acl bucket-owner-full-control
 ```
 
 ### 5. Launch the CloudFormation template
