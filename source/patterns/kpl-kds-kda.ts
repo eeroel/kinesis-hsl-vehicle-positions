@@ -12,15 +12,15 @@
  *********************************************************************************************************************/
 
 import * as cdk from '@aws-cdk/core';
-import * as cwlogs from '@aws-cdk/aws-logs';
+//import * as cwlogs from '@aws-cdk/aws-logs';
 
 import { DataStream } from '../lib/kds-data-stream';
 import { KinesisProducer } from '../lib/kpl-producer';
-import { FlinkApplication } from '../lib/kda-flink-application';
-import { EncryptedBucket } from '../lib/s3-bucket';
+//import { FlinkApplication } from '../lib/kda-flink-application';
+//import { EncryptedBucket } from '../lib/s3-bucket';
 import { SolutionHelper } from '../lib/solution-helper';
 import { SolutionStackProps } from './solution-props';
-import { ApplicationMonitoring } from '../lib/kda-monitoring';
+//import { ApplicationMonitoring } from '../lib/kda-monitoring';
 
 export class KplKdsKda extends cdk.Stack {
     private readonly BinaryOptions = ['true', 'false'];
@@ -84,11 +84,11 @@ export class KplKdsKda extends cdk.Stack {
 
         //---------------------------------------------------------------------
         // Kinesis Data Analytics configuration
-
+/*
         const outputBucket = new EncryptedBucket(this, 'Output', {
             enableIntelligentTiering: true
-        });
-
+        });*/
+/*
         const logLevel = new cdk.CfnParameter(this, 'LogLevel', {
             type: 'String',
             default: 'INFO',
@@ -99,7 +99,7 @@ export class KplKdsKda extends cdk.Stack {
             type: 'String',
             default: 'OPERATOR',
             allowedValues: FlinkApplication.AllowedMetricLevels
-        });
+        });*/
 
         const snapshots = new cdk.CfnParameter(this, 'EnableSnapshots', {
             type: 'String',
@@ -114,13 +114,15 @@ export class KplKdsKda extends cdk.Stack {
         });
 
         const subnets = new cdk.CfnParameter(this, 'ApplicationSubnetIds', {
-            type: 'CommaDelimitedList'
+            type: 'CommaDelimitedList',
+            default: ''
         });
 
         const securityGroups = new cdk.CfnParameter(this, 'ApplicationSecurityGroupIds', {
-            type: 'CommaDelimitedList'
+            type: 'CommaDelimitedList',
+            default: ''
         });
-
+/*
         const kda = new FlinkApplication(this, 'Kda', {
             inputStream: kds.Stream,
             outputBucket: outputBucket.Bucket,
@@ -138,7 +140,7 @@ export class KplKdsKda extends cdk.Stack {
             subnetIds: subnets.valueAsList,
             securityGroupIds: securityGroups.valueAsList
         });
-
+*/
         //---------------------------------------------------------------------
         // Solution metrics
 
@@ -153,12 +155,12 @@ export class KplKdsKda extends cdk.Stack {
 
         //---------------------------------------------------------------------
         // Monitoring (dashboard and alarms) configuration
-
+/*
         new ApplicationMonitoring(this, 'Monitoring', {
             applicationName: kda.ApplicationName,
             logGroupName: kda.LogGroupName,
             inputStreamName: kds.Stream.streamName
-        });
+        });*/
 
         //---------------------------------------------------------------------
         // Template metadata
@@ -177,8 +179,8 @@ export class KplKdsKda extends cdk.Stack {
                     {
                         Label: { default: 'Amazon Kinesis Data Analytics configuration' },
                         Parameters: [
-                            logLevel.logicalId,
-                            metricsLevel.logicalId,
+                            //logLevel.logicalId,
+                            //metricsLevel.logicalId,
                             snapshots.logicalId,
                             autoScaling.logicalId,
                             subnets.logicalId,
@@ -207,12 +209,12 @@ export class KplKdsKda extends cdk.Stack {
                         default: 'Enable enhanced (shard-level) metrics'
                     },
 
-                    [logLevel.logicalId]: {
-                        default: 'Monitoring log level'
-                    },
-                    [metricsLevel.logicalId]: {
-                        default: 'Monitoring metrics level'
-                    },
+                    //[logLevel.logicalId]: {
+                    //    default: 'Monitoring log level'
+                    //},
+                    //[metricsLevel.logicalId]: {
+                    //    default: 'Monitoring metrics level'
+                    //},
                     [snapshots.logicalId]: {
                         default: 'Enable service-triggered snapshots'
                     },
@@ -241,10 +243,10 @@ export class KplKdsKda extends cdk.Stack {
             description: 'Name of the Kinesis stream',
             value: kds.Stream.streamName
         });
-
+/*
         new cdk.CfnOutput(this, 'ApplicationName', {
             description: 'Name of the Kinesis Analytics application',
             value: kda.ApplicationName
-        });
+        });*/
     }
 }

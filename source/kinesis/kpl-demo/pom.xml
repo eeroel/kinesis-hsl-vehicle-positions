@@ -12,6 +12,7 @@
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <aws-java-sdk.version>1.11.603</aws-java-sdk.version>
+        <jdk.version>1.8</jdk.version>
         <java.version>1.8</java.version>
 
         <compiler-plugin.version>3.8.1</compiler-plugin.version>
@@ -19,6 +20,11 @@
     </properties>
 
     <dependencies>
+        <dependency>
+            <groupId>org.eclipse.paho</groupId>
+            <artifactId>org.eclipse.paho.client.mqttv3</artifactId>
+            <version>1.2.0</version>
+        </dependency>
         <!-- https://mvnrepository.com/artifact/com.amazonaws/amazon-kinesis-producer -->
         <dependency>
             <groupId>com.amazonaws</groupId>
@@ -76,6 +82,17 @@
                                     <mainClass>com.demo.SampleProducer</mainClass>
                                 </transformer>
                             </transformers>
+                            <filters>
+                                <filter>
+                                    <artifact>*:*</artifact>
+                                    <excludes>
+                                        <exclude>META-INF/*.SF</exclude>
+                                        <exclude>META-INF/*.DSA</exclude>
+                                        <exclude>META-INF/*.RSA</exclude>
+                                    </excludes>
+                                </filter>
+                            </filters>
+                            <!-- Additional configuration. -->
                         </configuration>
                     </execution>
                 </executions>
