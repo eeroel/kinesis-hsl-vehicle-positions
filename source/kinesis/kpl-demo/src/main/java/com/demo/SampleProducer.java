@@ -58,6 +58,9 @@ public class SampleProducer {
 
     private static final String[] TICKERS = { "AAPL", "AMZN", "MSFT", "INTC", "TBV" };
 
+    // default: all "major" vehicle position events from trams
+    private static final String DEFAULT_TOPIC = "/hfp/v2/journey/ongoing/vp/tram/+/+/+/+/+/+/+/0/#";
+
     private static KinesisProducer getKinesisProducer(final String region) {
         KinesisProducerConfiguration config = new KinesisProducerConfiguration();
         config.setRegion(region);
@@ -74,10 +77,11 @@ public class SampleProducer {
         return args.length > index ? args[index] : defaultValue;
     }
 
-    /** @param args The command line args for the Sample Producer. It takes 3 optional position parameters:
+    /** @param args The command line args for the Sample Producer. It takes 4 optional position parameters:
      *  1. The stream name to use (default-data-stream is default)
      *  2. The region name to use (us-east-1 is default)
      *  3. The duration of the test in seconds, 5 is the default.
+     *  4. The MQTT topic
      *
      * Sample usage:
      * java -jar aws-kpl-demo.jar my-stream us-east-1 10
@@ -86,6 +90,7 @@ public class SampleProducer {
         final String streamName = getArgIfPresent(args, 0, STREAM_NAME);
         final String region = getArgIfPresent(args, 1, DEFAULT_REGION_NAME);
         final String secondsToRunString = getArgIfPresent(args, 2, String.valueOf(SECONDS_TO_RUN_DEFAULT));
+        final String argTopic = getArgIfPresent(args, 3, DEFAULT_TOPIC);
         final int secondsToRun = Integer.parseInt(secondsToRunString);
         if (secondsToRun <= 0) {
             LOG.error("Seconds to Run should be a positive integer");
@@ -124,20 +129,14 @@ public class SampleProducer {
         options.setConnectionTimeout(30);
         mq.connect(options);
         
-        // start with one route (9)
-        mq.subscribe("/hfp/v2/journey/ongoing/vp/+/+/+/9/+/+/+/+/0/#",
+        //
+        mq.subscribe(argTopic,
             (topic, msg) -> {
-                ByteBuffer payload = ByteBuffer.wrap(msg.getPayload());
-                Runnable cmd = new Runnable() {
-                    @Override
-                    public void run() {
-                        // TIMESTAMP is our partition key
-                        ListenableFuture<UserRecordResult> f = producer.addUserRecord(streamName, TIMESTAMP, randomExplicitHashKey(), payload);
-                        Futures.addCallback(f, callback, callbackThreadPool);
-                    }
-                };
                 LOG.info("Received message, pushing to stream...");
-                EXECUTOR.submit(cmd);
+                ByteBuffer payload = ByteBuffer.wrap(msg.getPayload());
+                // TIMESTAMP is our partition key
+                ListenableFuture<UserRecordResult> f = producer.addUserRecord(streamName, TIMESTAMP, randomExplicitHashKey(), payload);
+                Futures.addCallback(f, callback, callbackThreadPool);
             }
         );
             
